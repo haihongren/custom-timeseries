@@ -1,5 +1,5 @@
-import React from "react";
-import PropTypes from "prop-types";
+import React from 'react'
+import PropTypes from 'prop-types'
 import {
   Card,
   CardBody,
@@ -9,7 +9,7 @@ import {
   LineChart,
   AreaChart,
   NerdletStateContext,
-} from "nr1";
+} from 'nr1'
 
 export default class CustomTimeseriesVisualization extends React.Component {
   // Custom props you wish to be configurable in the UI must also be defined in
@@ -23,53 +23,85 @@ export default class CustomTimeseriesVisualization extends React.Component {
     selectUnit: PropTypes.string,
     timestampUnit: PropTypes.object,
     chartType: PropTypes.string,
-  };
-
-  formatTimeseries(d, filters) {
-    let chartTitle = this.props.legend;
-    if (filters) {
-      chartTitle += ` WHERE ${filters}`;
-    }
-    let timeData = [
-      {
-        metadata: {
-          id: "series-1",
-          name: chartTitle,
-          color: this.props.lineColor,
-          viz: "main",
-          units_data: {
-            x: "TIMESTAMP",
-            y: this.props.selectUnit,
-          },
-        },
-        data: [],
-      },
-    ];
-    for (let r of d) {
-      let x = null;
-      if (this.props.timestampUnit == "SECONDS") {
-        x = Number(r.metadata.name) * 1000;
-      }
-
-      if (this.props.timestampUnit == "MILLISECONDS") {
-        x = Number(r.metadata.name);
-      }
-      let y = r.data[0].y;
-      console.log({ x, y });
-      if (!isNaN(x)) {
-        timeData[0].data.push({ x: x, y: y });
-      }
-    }
-
-    let sorted = timeData[0].data.sort(function (x, y) {
-      return y.x - x.x;
-    });
-
-    timeData[0].data = sorted;
-
-    return timeData;
   }
 
+  formatTimeseries(d, filters) {
+    let chartTitle = this.props.legend
+    let timeunit = 1
+    let data = []
+    let timeData = []
+    let previous = ''
+    let customColor = ['red', 'blue', 'green', 'orange', 'yellow', 'black']
+    if (this.props.lineColor && this.props.lineColor.includes(',')) {
+      customColor = this.props.lineColor.split(',').map((item) => item.trim())
+    }
+    if (this.props.timestampUnit == 'SECONDS') {
+      timeunit = 1000
+    }
+
+    let x = null
+    let mytimestamp = null
+    let series = null
+    let itemcount = 0
+    for (let r of d) {
+      if (r.metadata.hasOwnProperty('name') && r.metadata.name.includes(',')) {
+        ;[mytimestamp, series] = r.metadata.name
+          .split(',')
+          .map((item) => item.trim())
+      } else {
+        mytimestamp = r.metadata.name
+        series = chartTitle
+      }
+      if (filters) {
+        series += ` WHERE ${filters}`
+      }
+      x = Number(mytimestamp * timeunit)
+      let y = r.data[0].y
+      if (!isNaN(x)) {
+        data.push({ x: x, y: y })
+      }
+
+      if (previous !== '' && previous !== series) {
+        let metadata = {
+          id: 'series' + previous,
+          name: previous,
+          color: customColor[itemcount % customColor.length],
+          viz: 'main',
+          units_data: {
+            x: 'TIMESTAMP',
+            y: this.props.selectUnit,
+          },
+        }
+        itemcount++
+        this.addNewItem(metadata, data, timeData)
+        data = []
+      }
+      previous = series
+    }
+
+    let metadata = {
+      id: 'series' + series,
+      name: series,
+      color: customColor[itemcount % customColor.length],
+      viz: 'main',
+      units_data: {
+        x: 'TIMESTAMP',
+        y: this.props.selectUnit,
+      },
+    }
+    this.addNewItem(metadata, data, timeData)
+    return timeData
+  }
+
+  addNewItem(metadata, data, timeData) {
+    let sorted = data.sort(function (x, y) {
+      return y.x - x.x
+    })
+    data = sorted
+    let newitem = { metadata, data }
+    console.log("new data series",newitem)
+    timeData.push(newitem)
+  }
   render() {
     const {
       query,
@@ -79,24 +111,24 @@ export default class CustomTimeseriesVisualization extends React.Component {
       selectUnit,
       timestampUnit,
       chartType,
-    } = this.props;
+    } = this.props
 
     const nrqlQueryPropsAvailable =
-      query && legend && lineColor && selectUnit && timestampUnit;
-    accountId;
+      query && legend && lineColor && selectUnit && timestampUnit
+    accountId
 
     if (!nrqlQueryPropsAvailable) {
-      return <EmptyState />;
+      return <EmptyState />
     }
 
     return (
       <NerdletStateContext.Consumer>
         {(nerdletState) => {
-          const { filters } = nerdletState;
+          const { filters } = nerdletState
 
-          let filteredQuery = query;
+          let filteredQuery = query
           if (filters) {
-            filteredQuery += ` WHERE ${filters}`;
+            filteredQuery += ` WHERE ${filters}`
           }
           return (
             <NrqlQuery
@@ -106,27 +138,26 @@ export default class CustomTimeseriesVisualization extends React.Component {
             >
               {({ data, loading, error }) => {
                 if (loading) {
-                  return <Spinner />;
+                  return <Spinner />
                 }
 
                 if (error) {
-                  throw new Error(error.message);
+                  throw new Error(error.message)
                 }
-                console.log({ nerdletState });
                 if (data) {
-                  const formattedData = this.formatTimeseries(data, filters);
-                  return chartType === "line" || !chartType ? (
+                  const formattedData = this.formatTimeseries(data, filters)
+                  return chartType === 'line' || !chartType ? (
                     <LineChart data={formattedData} fullHeight fullWidth />
                   ) : (
                     <AreaChart data={formattedData} fullHeight fullWidth />
-                  );
+                  )
                 }
               }}
             </NrqlQuery>
-          );
+          )
         }}
       </NerdletStateContext.Consumer>
-    );
+    )
   }
 }
 
@@ -141,7 +172,7 @@ const EmptyState = () => (
       </HeadingText>
     </CardBody>
   </Card>
-);
+)
 
 const ErrorState = () => (
   <Card className="ErrorState">
@@ -155,4 +186,4 @@ const ErrorState = () => (
       </HeadingText>
     </CardBody>
   </Card>
-);
+)
