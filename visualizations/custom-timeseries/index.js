@@ -26,6 +26,23 @@ export default class CustomTimeseriesVisualization extends React.Component {
   }
 
   formatTimeseries(d, filters) {
+    console.log('nrqlQuery Data:', d)
+
+    let reverseString=(str)=> {
+                      let array = str.split('')
+                      let reversedArray = array.reverse()
+                      let revStr = reversedArray.join('')
+                      return revStr
+                      }
+
+    let sorted_data = d.sort(function (x, y) {
+      let a=reverseString(x.metadata.name)
+      let b=reverseString(y.metadata.name)
+       return a.localeCompare(b)
+    })
+
+    console.log('sorted nrqlQuery Data:', sorted_data)
+      
     let chartTitle = this.props.legend
     let timeunit = 1
     let data = []
@@ -43,7 +60,7 @@ export default class CustomTimeseriesVisualization extends React.Component {
     let mytimestamp = null
     let series = null
     let itemcount = 0
-    for (let r of d) {
+    for (let r of sorted_data) {
       if (r.metadata.hasOwnProperty('name') && r.metadata.name.includes(',')) {
         ;[mytimestamp, series] = r.metadata.name
           .split(',')
@@ -99,9 +116,13 @@ export default class CustomTimeseriesVisualization extends React.Component {
     })
     data = sorted
     let newitem = { metadata, data }
-    console.log("new data series",newitem)
+    console.log('new data series', newitem)
     timeData.push(newitem)
   }
+
+
+
+
   render() {
     const {
       query,
@@ -146,6 +167,7 @@ export default class CustomTimeseriesVisualization extends React.Component {
                 }
                 if (data) {
                   const formattedData = this.formatTimeseries(data, filters)
+                  console.log('formattedData', formattedData)
                   return chartType === 'line' || !chartType ? (
                     <LineChart data={formattedData} fullHeight fullWidth />
                   ) : (
