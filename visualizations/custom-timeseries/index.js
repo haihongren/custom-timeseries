@@ -60,6 +60,7 @@ export default class CustomTimeseriesVisualization extends React.Component {
     let mytimestamp = null
     let series = null
     let itemcount = 0
+
     for (let r of sorted_data) {
       if (r.metadata.hasOwnProperty('name') && r.metadata.name.includes(',')) {
         ;[mytimestamp, series] = r.metadata.name
@@ -72,12 +73,6 @@ export default class CustomTimeseriesVisualization extends React.Component {
       if (filters) {
         series += ` WHERE ${filters}`
       }
-      x = Number(mytimestamp * timeunit)
-      let y = r.data[0].y
-      if (!isNaN(x)) {
-        data.push({ x: x, y: y })
-      }
-
       if (previous !== '' && previous !== series) {
         let metadata = {
           id: 'series' + previous,
@@ -92,7 +87,12 @@ export default class CustomTimeseriesVisualization extends React.Component {
         itemcount++
         this.addNewItem(metadata, data, timeData)
         data = []
-      }
+      } 
+        x = Number(mytimestamp * timeunit)
+        let y = r.data[0].y
+        if (!isNaN(x)) {
+          data.push({ x: x, y: y })
+        }
       previous = series
     }
 
